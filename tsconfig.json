@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2016",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": "./" /* এখানে "./" দিলে সে রুট এবং src দুইটাই দেখবে */,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["**/*"] /* সব ফোল্ডারের সব .ts ফাইল ইনক্লুড করবে */,
+  "exclude": ["node_modules", "dist"]
+}
