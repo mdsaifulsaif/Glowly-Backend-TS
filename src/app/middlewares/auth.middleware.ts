@@ -1,7 +1,7 @@
 
 import { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { User } from "../models/user.model";
+import { User } from "../modules/auth/user.model";
 import catchAsync from "../utils/catchAsync";
 
 // --- Authenticated User Middleware ---
