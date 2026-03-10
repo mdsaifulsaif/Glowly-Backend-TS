@@ -6,11 +6,46 @@ const createProductIntoDB = async (payload: IProduct) => {
   return result;
 };
 
-const getAllProductsFromDB = async (query: Record<string, any>) => {
+// const getAllProductsFromDB = async (query: Record<string, any>) => {
  
-  const { searchTerm, category, page = 1, limit = 10, ...filterData } = query;
+//   const { searchTerm, category, page = 1, limit = 10, ...filterData } = query;
+
+//   const filter: any = { ...filterData };
+
+//   if (searchTerm) {
+//     filter.$or = [
+//       { name: { $regex: searchTerm, $options: "i" } },
+//       { description: { $regex: searchTerm, $options: "i" } },
+//     ];
+//   }
+
+
+//   if (category) {
+//     filter.categoryID = category;
+//   }
+
+//   const skip = (Number(page) - 1) * Number(limit);
+
+  
+//   const result = await Product.find(filter)
+//     .populate("categoryID")
+//     .sort("-createdAt")
+//     .skip(skip)
+//     .limit(Number(limit));
+
+//   const total = await Product.countDocuments(filter);
+//   const totalPage = Math.ceil(total / Number(limit));
+
+//   return {
+//     meta: { page: Number(page), limit: Number(limit), total, totalPage },
+//     data: result,
+//   };
+// };
+const getAllProductsFromDB = async (query: Record<string, any>) => {
+  const { searchTerm, category, page = 1, limit = 8, sort, ...filterData } = query;
 
   const filter: any = { ...filterData };
+
 
   if (searchTerm) {
     filter.$or = [
@@ -19,17 +54,24 @@ const getAllProductsFromDB = async (query: Record<string, any>) => {
     ];
   }
 
+  
+  if (category && category !== "All Product") {
+    filter.categoryID = category; 
+  }
 
-  if (category) {
-    filter.categoryID = category;
+
+  
+  let sortStr = "-createdAt";
+  if (sort) {
+    
+    sortStr = sort as string;
   }
 
   const skip = (Number(page) - 1) * Number(limit);
 
-  
   const result = await Product.find(filter)
     .populate("categoryID")
-    .sort("-createdAt")
+    .sort(sortStr) 
     .skip(skip)
     .limit(Number(limit));
 
@@ -42,13 +84,19 @@ const getAllProductsFromDB = async (query: Record<string, any>) => {
   };
 };
 
-const getSingleProductFromDB = async (id: string) => {
-  const result = await Product.findById(id).populate("categoryID");
-  return result;
-};
 
 const deleteProductFromDB = async (id: string) => {
   const result = await Product.findByIdAndDelete(id);
+  return result;
+};
+
+const getSingleProductFromDB = async (id: string) => {
+  const result = await Product.findById(id).populate('categoryID');
+  
+  if (!result) {
+    throw new Error("Product not found!");
+  }
+  
   return result;
 };
 

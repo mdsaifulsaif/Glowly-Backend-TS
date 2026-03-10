@@ -37,7 +37,32 @@ const getAllReviewsFromDB = async (page: number, limit: number) => {
   };
 };
 
+const getReviewsByProductIdFromDB = async (productId: string, page: number, limit: number) => {
+  const skip = (page - 1) * limit;
+
+ 
+  const data = await Review.find({ productID: productId })
+    .populate('userID', 'firstName lastName avatar') 
+    .sort({ createdAt: -1 }) 
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Review.countDocuments({ productID: productId });
+  const totalPage = Math.ceil(total / limit);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage,
+    },
+    data,
+  };
+};
+
 export const ReviewServices = {
   addReviewToDB,
   getAllReviewsFromDB,
+  getReviewsByProductIdFromDB
 };

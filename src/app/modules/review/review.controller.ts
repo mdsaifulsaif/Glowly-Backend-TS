@@ -45,7 +45,33 @@ const getReviews = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getProductReviews = catchAsync(async (req: Request, res: Response) => {
+
+ const productId: string = req.params.id as string;
+
+
+  const page = Number(req.query.page as string) || 1;
+  const limit = Number(req.query.limit as string) || 10;
+
+  
+  const result = await ReviewServices.getReviewsByProductIdFromDB(
+    productId, 
+    page, 
+    limit
+  );
+
+ 
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Product reviews retrieved successfully',
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
 export const ReviewControllers = {
   createReview,
   getReviews,
+  getProductReviews
 };

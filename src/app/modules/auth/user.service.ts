@@ -27,10 +27,19 @@ const updateProfileInDB = async (id: string, payload: Partial<IUser>) => {
 const findUserById = async (id: string) => {
   return await User.findById(id);
 };
+const getMeFromDB = async (id: string) => {
+  return await User.findById(id).select("-password");
+};
+
+const findUserWithPassword = async (id: string) => {
+  return await User.findById(id).select("+password");
+};
 
 export const UserServices = {
   registerUserIntoDB,
   findUserByEmail,
   updateProfileInDB,
-  findUserById
+  findUserById,
+  getMeFromDB,
+  findUserWithPassword
 };

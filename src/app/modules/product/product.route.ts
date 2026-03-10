@@ -18,5 +18,6 @@ router.post(
 
 router.get("/", ProductControllers.getAllProducts);
 router.delete("/:id", isAuthenticated, isAdmin, ProductControllers.deleteProduct)
+router.get("/:id", ProductControllers.getSingleProduct);
 
 export const ProductRoutes = router;

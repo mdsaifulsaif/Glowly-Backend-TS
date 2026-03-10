@@ -6,6 +6,9 @@ import { UserServices } from "./user.service";
 import { sendToken } from "../../utils/jwtToken";
 import { uploadToCloudinary } from "../../utils/uploadToCloudinary";
 import { deleteFromCloudinary } from "../../utils/deleteFromCloudinary";
+import { IUser } from "./user.interface"
+import { User } from './user.model';
+
 
 const registerUser = catchAsync(async (req: Request, res: Response) => {
   const { email, password, ...rest } = req.body;
@@ -59,7 +62,7 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     role: (user as any).role,
   };
 
-  sendToken(userResponse, 200, res);
+  sendToken(userResponse as any, 200, res);
 });
 // --- Logout ---
 const logoutUser = catchAsync(async (req: Request, res: Response) => {
@@ -80,30 +83,99 @@ const logoutUser = catchAsync(async (req: Request, res: Response) => {
 });
 
 // --- Update Profile ---
-const updateProfile = catchAsync(async (req: Request, res: Response) => {
+// const updateProfile = catchAsync(async (req: Request, res: Response) => {
+//   const userId = (req as any).user?._id;
+
+//   const user = await UserServices.findUserById(userId);
+//   if (!user) {
+//     throw new Error("User not found!");
+//   }
+
+//   let updateData = { ...req.body };
+
+//   if (req.file) {
+//     if (user.avatar?.public_id) {
+//       await deleteFromCloudinary(user.avatar.public_id);
+//     }
+
+//     const result: any = await uploadToCloudinary(req.file.buffer, "avatars");
+
+//     updateData.avatar = {
+//       public_id: result.public_id,
+//       url: result.secure_url || result.url,
+//     };
+//   }
+
+//   const result = await UserServices.updateProfileInDB(userId, updateData);
+
+//   sendResponse(res, {
+//     statusCode: 200,
+//     success: true,
+//     message: "Profile updated successfully!",
+//     data: result,
+//   });
+// });
+
+export const updateProfile = catchAsync(async (req: Request, res: Response) => {
   const userId = (req as any).user?._id;
+  const user = await User.findById(userId).select('+password');
+  
+  if (!user) throw new Error("User not found!");
 
-  const user = await UserServices.findUserById(userId);
-  if (!user) {
-    throw new Error("User not found!");
-  }
+  const { 
+    firstName, lastName, phoneNumber, 
+    addressLine, city, state, postalCode, 
+    currentPassword, newPassword 
+  } = req.body;
 
-  let updateData = { ...req.body };
+  let updateData: any = {};
 
+  if (firstName) updateData.firstName = firstName;
+  if (lastName) updateData.lastName = lastName;
+  if (phoneNumber) updateData.phoneNumber = phoneNumber;
+
+  
   if (req.file) {
-    if (user.avatar?.public_id) {
-      await deleteFromCloudinary(user.avatar.public_id);
+    
+    if ((user as any).avatar?.public_id) {
+      await deleteFromCloudinary((user as any).avatar.public_id);
     }
-
-    const result: any = await uploadToCloudinary(req.file.buffer, "avatars");
-
+    
+   
+    const uploadResult: any = await uploadToCloudinary(req.file.buffer, "avatars");
     updateData.avatar = {
-      public_id: result.public_id,
-      url: result.secure_url || result.url,
+      public_id: uploadResult.public_id,
+      url: uploadResult.secure_url || uploadResult.url,
     };
   }
 
-  const result = await UserServices.updateProfileInDB(userId, updateData);
+  
+  if (addressLine || city || state || postalCode) {
+    const existing = (user as any).shippingAddress || {};
+    updateData.shippingAddress = {
+      addressLine: addressLine || existing.addressLine || "",
+      city: city || existing.city || "",
+      state: state || existing.state || "",
+      postalCode: postalCode || existing.postalCode || "",
+      country: "Bangladesh"
+    };
+  }
+
+  
+  if (currentPassword && newPassword) {
+    const isPasswordMatch = await (User as any).isPasswordMatched(currentPassword, user.password);
+    
+    if (!isPasswordMatch) throw new Error("Current password is incorrect!");
+    
+    user.password = newPassword;
+    await user.save(); 
+  }
+
+
+  const result = await User.findByIdAndUpdate(userId, updateData, {
+    new: true,
+    runValidators: true,
+  });
 
   sendResponse(res, {
     statusCode: 200,
@@ -113,9 +185,34 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+interface AuthRequest extends Request {
+  user?: IUser;
+}
+
+const getMe = catchAsync(async (req: AuthRequest, res: Response) => {
+  
+  const userId = req.user?._id; 
+
+  if (!userId) {
+    throw new Error("You are not authorized!"); 
+  }
+
+ 
+  const result = await UserServices.getMeFromDB(userId.toString());
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "User profile retrieved successfully!",
+    data: result,
+  });
+});
+
 export const UserControllers = {
   registerUser,
   loginUser,
   logoutUser,
   updateProfile,
+  getMe,
 };

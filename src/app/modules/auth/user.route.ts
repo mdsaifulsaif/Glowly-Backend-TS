@@ -18,4 +18,10 @@ router.patch(
   UserControllers.updateProfile
 );
 
+router.get(
+  "/get-me",
+  isAuthenticated, 
+  UserControllers.getMe
+);
+
 export const UserRoutes = router;
