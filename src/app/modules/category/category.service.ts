@@ -31,7 +31,6 @@ const getAllCategoriesFromDB = async (page: number, limit: number) => {
 
 // category.service.ts
 const deleteCategoryFromDB = async (id: string) => {
-  // মঙ্গুস অটোমেটিক স্ট্রিং আইডি-কে অবজেক্ট আইডিতে কনভার্ট করে নেয়
   const result = await Category.findByIdAndDelete(id);
   return result;
 };
