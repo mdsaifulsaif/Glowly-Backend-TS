@@ -6,17 +6,45 @@ import { UserServices } from "./user.service";
 import { sendToken } from "../../utils/jwtToken";
 import { uploadToCloudinary } from "../../utils/uploadToCloudinary";
 import { deleteFromCloudinary } from "../../utils/deleteFromCloudinary";
-import { IUser } from "./user.interface"
-import { User } from './user.model';
+import { IUser } from "./user.interface";
+import { User } from "./user.model";
 
 
+//   const { email, password, ...rest } = req.body;
+
+//   const userExists = await UserServices.findUserByEmail(email);
+//   if (userExists) {
+//     throw new Error("User already exists with this email!");
+//   }
+
+//   const salt = await bcrypt.genSalt(10);
+//   const hashedPassword = await bcrypt.hash(password, salt);
+
+//   const userData = {
+//     ...rest,
+//     email,
+//     password: hashedPassword,
+//   };
+
+//   const result = await UserServices.registerUserIntoDB(userData);
+
+//   sendResponse(res, {
+//     statusCode: 201,
+//     success: true,
+//     message: "User registered successfully",
+//     data: result,
+//   });
+//   sendToken(result as any, 201, res);
+// });
 const registerUser = catchAsync(async (req: Request, res: Response) => {
   const { email, password, ...rest } = req.body;
 
+ 
   const userExists = await UserServices.findUserByEmail(email);
   if (userExists) {
     throw new Error("User already exists with this email!");
   }
+
 
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
@@ -27,14 +55,11 @@ const registerUser = catchAsync(async (req: Request, res: Response) => {
     password: hashedPassword,
   };
 
+
   const result = await UserServices.registerUserIntoDB(userData);
 
-  sendResponse(res, {
-    statusCode: 201,
-    success: true,
-    message: "User registered successfully",
-    data: result,
-  });
+ 
+  sendToken(result as any, 201, res);
 });
 
 const loginUser = catchAsync(async (req: Request, res: Response) => {
@@ -50,21 +75,17 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     throw new Error("Invalid email or password");
   }
 
-  const isPasswordMatched = await bcrypt.compare(password, user.password || "");
+
+  const isPasswordMatched = await (User as any).isPasswordMatched(password, user.password);
 
   if (!isPasswordMatched) {
     throw new Error("Invalid email or password");
   }
 
-  const userResponse = {
-    _id: user._id,
-    email: user.email,
-    role: (user as any).role,
-  };
-
-  sendToken(userResponse as any, 200, res);
+ 
+  sendToken(user as any , 200, res);
 });
-// --- Logout ---
+
 const logoutUser = catchAsync(async (req: Request, res: Response) => {
   res.cookie("token", null, {
     expires: new Date(0),
@@ -83,49 +104,23 @@ const logoutUser = catchAsync(async (req: Request, res: Response) => {
 });
 
 // --- Update Profile ---
-// const updateProfile = catchAsync(async (req: Request, res: Response) => {
-//   const userId = (req as any).user?._id;
-
-//   const user = await UserServices.findUserById(userId);
-//   if (!user) {
-//     throw new Error("User not found!");
-//   }
-
-//   let updateData = { ...req.body };
-
-//   if (req.file) {
-//     if (user.avatar?.public_id) {
-//       await deleteFromCloudinary(user.avatar.public_id);
-//     }
-
-//     const result: any = await uploadToCloudinary(req.file.buffer, "avatars");
-
-//     updateData.avatar = {
-//       public_id: result.public_id,
-//       url: result.secure_url || result.url,
-//     };
-//   }
-
-//   const result = await UserServices.updateProfileInDB(userId, updateData);
-
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: "Profile updated successfully!",
-//     data: result,
-//   });
-// });
 
 export const updateProfile = catchAsync(async (req: Request, res: Response) => {
   const userId = (req as any).user?._id;
-  const user = await User.findById(userId).select('+password');
-  
+  const user = await User.findById(userId).select("+password");
+
   if (!user) throw new Error("User not found!");
 
-  const { 
-    firstName, lastName, phoneNumber, 
-    addressLine, city, state, postalCode, 
-    currentPassword, newPassword 
+  const {
+    firstName,
+    lastName,
+    phoneNumber,
+    addressLine,
+    city,
+    state,
+    postalCode,
+    currentPassword,
+    newPassword,
   } = req.body;
 
   let updateData: any = {};
@@ -134,22 +129,21 @@ export const updateProfile = catchAsync(async (req: Request, res: Response) => {
   if (lastName) updateData.lastName = lastName;
   if (phoneNumber) updateData.phoneNumber = phoneNumber;
 
-  
   if (req.file) {
-    
     if ((user as any).avatar?.public_id) {
       await deleteFromCloudinary((user as any).avatar.public_id);
     }
-    
-   
-    const uploadResult: any = await uploadToCloudinary(req.file.buffer, "avatars");
+
+    const uploadResult: any = await uploadToCloudinary(
+      req.file.buffer,
+      "avatars",
+    );
     updateData.avatar = {
       public_id: uploadResult.public_id,
       url: uploadResult.secure_url || uploadResult.url,
     };
   }
 
-  
   if (addressLine || city || state || postalCode) {
     const existing = (user as any).shippingAddress || {};
     updateData.shippingAddress = {
@@ -157,20 +151,21 @@ export const updateProfile = catchAsync(async (req: Request, res: Response) => {
       city: city || existing.city || "",
       state: state || existing.state || "",
       postalCode: postalCode || existing.postalCode || "",
-      country: "Bangladesh"
+      country: "Bangladesh",
     };
   }
 
-  
   if (currentPassword && newPassword) {
-    const isPasswordMatch = await (User as any).isPasswordMatched(currentPassword, user.password);
-    
-    if (!isPasswordMatch) throw new Error("Current password is incorrect!");
-    
-    user.password = newPassword;
-    await user.save(); 
-  }
+    const isPasswordMatch = await (User as any).isPasswordMatched(
+      currentPassword,
+      user.password,
+    );
 
+    if (!isPasswordMatch) throw new Error("Current password is incorrect!");
+
+    user.password = newPassword;
+    await user.save();
+  }
 
   const result = await User.findByIdAndUpdate(userId, updateData, {
     new: true,
@@ -185,20 +180,17 @@ export const updateProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
 interface AuthRequest extends Request {
   user?: IUser;
 }
 
 const getMe = catchAsync(async (req: AuthRequest, res: Response) => {
-  
-  const userId = req.user?._id; 
+  const userId = req.user?._id;
 
   if (!userId) {
-    throw new Error("You are not authorized!"); 
+    throw new Error("You are not authorized!");
   }
 
- 
   const result = await UserServices.getMeFromDB(userId.toString());
 
   sendResponse(res, {

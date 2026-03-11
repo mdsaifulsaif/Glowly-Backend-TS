@@ -1,25 +1,37 @@
+
 // import { Response } from "express";
 // import jwt from "jsonwebtoken";
 
-// export const sendToken = (user: any, statusCode: number, res: Response) => {
+// interface IUser {
+//   _id: string;
+//   role: string;
+// }
 
+// export const sendToken = (
+//   user: IUser,
+//   statusCode: number,
+//   res: Response,
+// ): void => {
 //   const token = jwt.sign(
 //     { id: user._id, role: user.role },
-//     process.env.JWT_SECRET!,
+//     process.env.JWT_SECRET as string,
 //     { expiresIn: "7d" },
 //   );
 
-//   const options = {
+//   const cookieOptions = {
 //     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
 //     httpOnly: true,
 //     secure: process.env.NODE_ENV === "production",
-//     sameSite: "none" as const,
+//     sameSite:
+//       process.env.NODE_ENV === "production"
+//         ? ("none" as const)
+//         : ("lax" as const),
 //     path: "/",
 //   };
 
 //   res
 //     .status(statusCode)
-//     .cookie("token", token, options)
+//     .cookie("token", token, cookieOptions)
 //     .json({
 //       success: true,
 //       message:
@@ -33,12 +45,22 @@
 //     });
 // };
 
+
 import { Response } from "express";
 import jwt from "jsonwebtoken";
 
+
 interface IUser {
   _id: string;
-  role: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: "admin" | "user";
+  avatar?: {
+    public_id?: string;
+    url: string;
+  };
+  [key: string]: any; 
 }
 
 export const sendToken = (
@@ -46,6 +68,7 @@ export const sendToken = (
   statusCode: number,
   res: Response,
 ): void => {
+
   const token = jwt.sign(
     { id: user._id, role: user.role },
     process.env.JWT_SECRET as string,
@@ -63,6 +86,24 @@ export const sendToken = (
     path: "/",
   };
 
+
+  const userObj = user.toObject ? user.toObject() : { ...user };
+  delete userObj.password;
+
+ 
+  const finalUserResponse = {
+    _id: userObj._id,
+    firstName: userObj.firstName,
+    lastName: userObj.lastName,
+    email: userObj.email,
+    role: userObj.role,
+    avatar: {
+      url: userObj.avatar?.url || "https://example.com/default-avatar.png",
+    },
+
+    ...userObj 
+  };
+
   res
     .status(statusCode)
     .cookie("token", token, cookieOptions)
@@ -73,7 +114,7 @@ export const sendToken = (
           ? "Registered Successfully"
           : "Logged in Successfully",
       data: {
-        user,
+        user: finalUserResponse,
         token,
       },
     });

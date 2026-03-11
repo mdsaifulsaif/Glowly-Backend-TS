@@ -50,7 +50,7 @@ const userSchema = new Schema<IUser>({
     },
 }, { timestamps: true });
 
-// পাসওয়ার্ড চেকিং মেথড (এটি না থাকলে এরর দিবে)
+
 userSchema.statics.isPasswordMatched = async function (givenPassword, hashedPassword) {
     return await bcrypt.compare(givenPassword, hashedPassword);
 };

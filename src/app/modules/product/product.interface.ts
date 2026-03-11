@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 export interface IProduct {
   name: string;
   description: string;
+  costPrice: number;
   regularPrice: number;
   salePrice?: number;
   thumbnail: string;

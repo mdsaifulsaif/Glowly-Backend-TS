@@ -14,7 +14,7 @@ app.use(cookieParser());
 // CORS Configuration
 app.use(
   cors({
-    origin: ["http://localhost:3000"],
+    origin: ["http://localhost:3000", "https://cartify-frontend-fawn.vercel.app"],
     credentials: true,
   }),
 );

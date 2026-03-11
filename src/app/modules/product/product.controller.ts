@@ -6,10 +6,68 @@ import { uploadToCloudinary } from "../../utils/uploadToCloudinary";
 import { Product } from "./product.model";
 import { deleteFromCloudinary } from "../../utils/deleteFromCloudinary";
 
+// const createProduct = catchAsync(async (req: Request, res: Response) => {
+//   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+//   let productData = { ...req.body };
+
+//   if (files && files.thumbnail && files.thumbnail[0]) {
+//     const result: any = await uploadToCloudinary(
+//       files.thumbnail[0].buffer,
+//       "glowly_products/thumbnails",
+//     );
+//     productData.thumbnail = result.secure_url || result.url;
+//   } else {
+//     throw new Error("Product thumbnail is required!");
+//   }
+
+//   if (files && files.images && files.images.length > 0) {
+//     const uploadPromises = files.images.map((file) =>
+//       uploadToCloudinary(file.buffer, "glowly_products/gallery"),
+//     );
+
+//     const uploadResults: any[] = await Promise.all(uploadPromises);
+//     productData.images = uploadResults.map((res) => res.secure_url || res.url);
+//   }
+
+//   const result = await ProductServices.createProductIntoDB(productData);
+
+//   sendResponse(res, {
+//     statusCode: 201,
+//     success: true,
+//     message: "Product created successfully!",
+//     data: result,
+//   });
+// });
+
 const createProduct = catchAsync(async (req: Request, res: Response) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-  let productData = { ...req.body };
+  const { name, description, costPrice, regularPrice, categoryID, stock } = req.body;
 
+  // ১. বেসিক ডাটা ভ্যালিডেশন (রিকোয়ার্ড ফিল্ড চেক)
+  if (!name || !description || !costPrice || !regularPrice || !categoryID || stock === undefined) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide all required fields: name, description, costPrice, regularPrice, categoryID, and stock."
+    });
+  }
+
+  // ২. টাইপ এবং ভ্যালু চেক (নাম্বার কি না এবং পজিটিভ কি না)
+  if (Number(costPrice) <= 0 || Number(regularPrice) <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Prices must be greater than zero."
+    });
+  }
+
+  let productData = { 
+    ...req.body,
+    costPrice: Number(costPrice),
+    regularPrice: Number(regularPrice),
+    salePrice: req.body.salePrice ? Number(req.body.salePrice) : undefined,
+    stock: Number(stock)
+  };
+
+  // ৩. ইমেজ ভ্যালিডেশন ও আপলোড
   if (files && files.thumbnail && files.thumbnail[0]) {
     const result: any = await uploadToCloudinary(
       files.thumbnail[0].buffer,
@@ -17,7 +75,10 @@ const createProduct = catchAsync(async (req: Request, res: Response) => {
     );
     productData.thumbnail = result.secure_url || result.url;
   } else {
-    throw new Error("Product thumbnail is required!");
+    return res.status(400).json({
+      success: false,
+      message: "Product thumbnail is required!"
+    });
   }
 
   if (files && files.images && files.images.length > 0) {
@@ -29,6 +90,7 @@ const createProduct = catchAsync(async (req: Request, res: Response) => {
     productData.images = uploadResults.map((res) => res.secure_url || res.url);
   }
 
+  // ৪. সব ঠিক থাকলে সার্ভিস কল
   const result = await ProductServices.createProductIntoDB(productData);
 
   sendResponse(res, {
