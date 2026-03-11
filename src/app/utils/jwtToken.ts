@@ -79,10 +79,7 @@ export const sendToken = (
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     httpOnly: true,
     secure: true,
-    sameSite:
-      process.env.NODE_ENV === "production"
-        ? ("none" as const)
-        : ("lax" as const),
+    sameSite: "none" as const,
     path: "/",
   };
 
