@@ -14,4 +14,10 @@ router.patch(
   SettingControllers.updateSettings
 );
 
+
+
+
+
+
+
 export const SettingRoutes = router;
