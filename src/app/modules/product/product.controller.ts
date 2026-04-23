@@ -146,11 +146,28 @@ const getBestsellingProducts = catchAsync(async (req: Request, res: Response) =>
   });
 });
 
+const getRelatedProducts = catchAsync(async (req: Request, res: Response) => {
+  const { categoryId, productId } = req.query; // Query theke nilam
+
+  const result = await ProductServices.getRelatedProductsFromDB(
+    categoryId as string, 
+    productId as string
+  );
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Related products retrieved successfully!",
+    data: result,
+  });
+});
+
 
 export const ProductControllers = {
   createProduct,
   getAllProducts,
   deleteProduct,
   getSingleProduct,
-  getBestsellingProducts
+  getBestsellingProducts,
+  getRelatedProducts
 };

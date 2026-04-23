@@ -112,10 +112,22 @@ const getBestsellingProductsFromDB = async (limit: number) => {
   return result;
 };
 
+const getRelatedProductsFromDB = async (categoryId: string, productId: string) => {
+  const result = await Product.find({
+    categoryID: categoryId,      // Same category hote hobe
+    _id: { $ne: productId }      // $ne mane 'Not Equal' - mane current product bad diye
+  })
+  .limit(4)                      // Figma design e 4ti product ache
+ .populate("categoryID")
+
+  return result;
+};
+
 export const ProductServices = {
   createProductIntoDB,
   getAllProductsFromDB,
   getSingleProductFromDB,
   deleteProductFromDB,
   getBestsellingProductsFromDB,
+  getRelatedProductsFromDB
 };

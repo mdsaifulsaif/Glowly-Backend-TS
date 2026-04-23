@@ -27,6 +27,8 @@ router.delete(
 
 router.get("/bestselling", ProductControllers.getBestsellingProducts);
 
+router.get('/related-products', ProductControllers.getRelatedProducts);
+
 router.get("/:id", ProductControllers.getSingleProduct);
 
 export const ProductRoutes = router;
