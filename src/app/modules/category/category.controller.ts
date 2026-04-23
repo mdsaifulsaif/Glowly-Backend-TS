@@ -49,25 +49,14 @@ const getCategories = catchAsync(async (req: Request, res: Response) => {
 const deleteCategory = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
 
- 
-  if (!id) {
-    throw new Error("Category ID is required!");
-  }
+  if (!id) throw new Error("Category ID is required!");
 
   const category = await Category.findById(id);
-  if (!category) {
+
+  if (!category || category.isDeleted) {
     throw new Error("Category not found!");
   }
 
-  
-  if (category.image) {
-    const publicId = category.image.split('/').pop()?.split('.')[0];
-    if (publicId) {
-      await deleteFromCloudinary(`glowly_categories/${publicId}`);
-    }
-  }
-
- 
   await CategoryServices.deleteCategoryFromDB(id as string);
 
   sendResponse(res, {
