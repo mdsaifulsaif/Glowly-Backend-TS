@@ -6,44 +6,12 @@ import { uploadToCloudinary } from "../../utils/uploadToCloudinary";
 import { Product } from "./product.model";
 import { deleteFromCloudinary } from "../../utils/deleteFromCloudinary";
 
-// const createProduct = catchAsync(async (req: Request, res: Response) => {
-//   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-//   let productData = { ...req.body };
-
-//   if (files && files.thumbnail && files.thumbnail[0]) {
-//     const result: any = await uploadToCloudinary(
-//       files.thumbnail[0].buffer,
-//       "glowly_products/thumbnails",
-//     );
-//     productData.thumbnail = result.secure_url || result.url;
-//   } else {
-//     throw new Error("Product thumbnail is required!");
-//   }
-
-//   if (files && files.images && files.images.length > 0) {
-//     const uploadPromises = files.images.map((file) =>
-//       uploadToCloudinary(file.buffer, "glowly_products/gallery"),
-//     );
-
-//     const uploadResults: any[] = await Promise.all(uploadPromises);
-//     productData.images = uploadResults.map((res) => res.secure_url || res.url);
-//   }
-
-//   const result = await ProductServices.createProductIntoDB(productData);
-
-//   sendResponse(res, {
-//     statusCode: 201,
-//     success: true,
-//     message: "Product created successfully!",
-//     data: result,
-//   });
-// });
 
 const createProduct = catchAsync(async (req: Request, res: Response) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
   const { name, description, costPrice, regularPrice, categoryID, stock } = req.body;
 
-  // ১. বেসিক ডাটা ভ্যালিডেশন (রিকোয়ার্ড ফিল্ড চেক)
+
   if (!name || !description || !costPrice || !regularPrice || !categoryID || stock === undefined) {
     return res.status(400).json({
       success: false,
@@ -163,12 +131,26 @@ const deleteProduct = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getBestsellingProducts = catchAsync(async (req: Request, res: Response) => {
 
+  const limit = Number(req.query.limit) || 4;
+
+
+  const result = await ProductServices.getBestsellingProductsFromDB(limit);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Bestselling products retrieved successfully!",
+    data: result,
+  });
+});
 
 
 export const ProductControllers = {
   createProduct,
   getAllProducts,
   deleteProduct,
-  getSingleProduct
+  getSingleProduct,
+  getBestsellingProducts
 };
