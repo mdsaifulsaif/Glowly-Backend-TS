@@ -5,7 +5,7 @@ import { ProductServices } from "./product.service";
 import { uploadToCloudinary } from "../../utils/uploadToCloudinary";
 import { Product } from "./product.model";
 import { deleteFromCloudinary } from "../../utils/deleteFromCloudinary";
-
+import slugify from "slugify";
 
 const createProduct = catchAsync(async (req: Request, res: Response) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -69,6 +69,8 @@ const createProduct = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+
 const getAllProducts = catchAsync(async (req: Request, res: Response) => {
   const result = await ProductServices.getAllProductsFromDB(req.query);
 
@@ -80,7 +82,6 @@ const getAllProducts = catchAsync(async (req: Request, res: Response) => {
     data: result.data,
   });
 });
-
 
 const getSingleProduct = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -102,20 +103,18 @@ const deleteProduct = catchAsync(async (req: Request, res: Response) => {
     throw new Error("Product not found!");
   }
 
-  
   if (product.thumbnail) {
-    const thumbPublicId = product.thumbnail.split('/').pop()?.split('.')[0];
+    const thumbPublicId = product.thumbnail.split("/").pop()?.split(".")[0];
     if (thumbPublicId) {
       await deleteFromCloudinary(`glowly_products/thumbnails/${thumbPublicId}`);
     }
   }
 
-
   if (product.images && product.images.length > 0) {
     const deletePromises = product.images.map((imgUrl) => {
-      const imgPublicId = imgUrl.split('/').pop()?.split('.')[0];
-      return imgPublicId 
-        ? deleteFromCloudinary(`glowly_products/gallery/${imgPublicId}`) 
+      const imgPublicId = imgUrl.split("/").pop()?.split(".")[0];
+      return imgPublicId
+        ? deleteFromCloudinary(`glowly_products/gallery/${imgPublicId}`)
         : Promise.resolve();
     });
     await Promise.all(deletePromises);
@@ -131,27 +130,27 @@ const deleteProduct = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getBestsellingProducts = catchAsync(async (req: Request, res: Response) => {
+const getBestsellingProducts = catchAsync(
+  async (req: Request, res: Response) => {
+    const limit = Number(req.query.limit) || 4;
 
-  const limit = Number(req.query.limit) || 4;
+    const result = await ProductServices.getBestsellingProductsFromDB(limit);
 
-
-  const result = await ProductServices.getBestsellingProductsFromDB(limit);
-
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: "Bestselling products retrieved successfully!",
-    data: result,
-  });
-});
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "Bestselling products retrieved successfully!",
+      data: result,
+    });
+  },
+);
 
 const getRelatedProducts = catchAsync(async (req: Request, res: Response) => {
   const { categoryId, productId } = req.query; // Query theke nilam
 
   const result = await ProductServices.getRelatedProductsFromDB(
-    categoryId as string, 
-    productId as string
+    categoryId as string,
+    productId as string,
   );
 
   sendResponse(res, {
@@ -162,12 +161,11 @@ const getRelatedProducts = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
 export const ProductControllers = {
   createProduct,
   getAllProducts,
   deleteProduct,
   getSingleProduct,
   getBestsellingProducts,
-  getRelatedProducts
+  getRelatedProducts,
 };

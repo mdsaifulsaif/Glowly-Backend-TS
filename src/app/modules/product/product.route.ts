@@ -5,6 +5,16 @@ import { upload } from "../../middlewares/multer.middleware";
 
 const router = Router();
 
+// router.post(
+//   "/create-product",
+//   isAuthenticated,
+//   isAdmin,
+//   upload.fields([
+//     { name: "thumbnail", maxCount: 1 },
+//     { name: "images", maxCount: 5 },
+//   ]),
+//   ProductControllers.createProduct,
+// );
 router.post(
   "/create-product",
   isAuthenticated,
