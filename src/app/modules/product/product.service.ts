@@ -1,10 +1,92 @@
-import { IProduct } from "./product.interface";
+import { GetProductsParams, IProduct } from "./product.interface";
 import { Product } from "./product.model";
 import { Order } from "../order/order.model";
+import slugify from "slugify";
 
-const createProductIntoDB = async (payload: IProduct) => {
+export const createProductIntoDB = async (payload: IProduct) => {
+  //  1. slug auto generate
+  if (payload.name) {
+    payload.slug = slugify(payload.name, { lower: true, strict: true });
+  }
+
+  //  2. sale price validation
+  if (payload.salePrice && payload.salePrice >= payload.regularPrice) {
+    throw new Error("Sale price must be less than regular price");
+  }
+
+  //  3. discount percent auto calculate
+  if (payload.salePrice) {
+    payload.discountPercent = Math.round(
+      ((payload.regularPrice - payload.salePrice) / payload.regularPrice) * 100
+    );
+  } else {
+    payload.discountPercent = 0;
+  }
+
+  //  4. default status fix
+  if (!payload.status) {
+    payload.status = "active";
+  }
+
+  //  5. SKU fallback (optional)
+  if (!payload.sku) {
+    payload.sku = `SKU-${Date.now()}`;
+  }
+
   const result = await Product.create(payload);
   return result;
+};
+
+const updateProductIntoDB = async (id: string, payload: Partial<IProduct>) => {
+  const product = await Product.findById(id);
+
+  if (!product) {
+    throw new Error("Product not found");
+  }
+
+  // 🔥 salePrice validation
+  if (
+    payload.salePrice &&
+    payload.regularPrice &&
+    payload.salePrice >= payload.regularPrice
+  ) {
+    throw new Error("Sale price must be less than regular price");
+  }
+
+  // 🔥 discount auto calculate
+  if (payload.salePrice) {
+    payload.discountPercent = Math.round(
+      ((payload.regularPrice! - payload.salePrice) /
+        payload.regularPrice!) *
+        100
+    );
+  }
+
+  const updated = await Product.findByIdAndUpdate(id, payload, {
+    new: true,
+    runValidators: true,
+  });
+
+  return updated;
+};
+
+export const getNewProductsService = async (params: GetProductsParams) => {
+  const { isNew, limit } = params;
+
+  // max 4 enforce
+  const safeLimit = Math.min(Number(limit) || 4, 4);
+
+  const filter: any = {};
+
+  if (isNew === "true") {
+    filter.isNew = true;
+  }
+
+  const products = await Product.find(filter)
+    .limit(safeLimit)
+    .sort({ createdAt: -1 });
+
+  return products;
 };
 
 const getAllProductsFromDB = async (query: Record<string, any>) => {
@@ -129,5 +211,7 @@ export const ProductServices = {
   getSingleProductFromDB,
   deleteProductFromDB,
   getBestsellingProductsFromDB,
-  getRelatedProductsFromDB
+  getRelatedProductsFromDB,
+  updateProductIntoDB,
+  getNewProductsService
 };

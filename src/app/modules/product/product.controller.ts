@@ -1,41 +1,105 @@
 import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
-import { ProductServices } from "./product.service";
+import { getNewProductsService, ProductServices } from "./product.service";
 import { uploadToCloudinary } from "../../utils/uploadToCloudinary";
 import { Product } from "./product.model";
 import { deleteFromCloudinary } from "../../utils/deleteFromCloudinary";
-import slugify from "slugify";
+
+
 
 const createProduct = catchAsync(async (req: Request, res: Response) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-  const { name, description, costPrice, regularPrice, categoryID, stock } = req.body;
 
+  const { name, description, costPrice, regularPrice, categoryID, stock } =
+    req.body;
 
-  if (!name || !description || !costPrice || !regularPrice || !categoryID || stock === undefined) {
+  //  1. Required field check
+  if (
+    !name ||
+    !description ||
+    !costPrice ||
+    !regularPrice ||
+    !categoryID ||
+    stock === undefined
+  ) {
     return res.status(400).json({
       success: false,
-      message: "Please provide all required fields: name, description, costPrice, regularPrice, categoryID, and stock."
+      message:
+        "Please provide all required fields: name, description, costPrice, regularPrice, categoryID, and stock.",
     });
   }
 
-  // ২. টাইপ এবং ভ্যালু চেক (নাম্বার কি না এবং পজিটিভ কি না)
-  if (Number(costPrice) <= 0 || Number(regularPrice) <= 0) {
+  //  2. Number validation
+  const cost = Number(costPrice);
+  const regular = Number(regularPrice);
+  const qty = Number(stock);
+  const sale = req.body.salePrice ? Number(req.body.salePrice) : undefined;
+
+  if (cost <= 0 || regular <= 0) {
     return res.status(400).json({
       success: false,
-      message: "Prices must be greater than zero."
+      message: "Prices must be greater than zero.",
     });
   }
 
-  let productData = { 
-    ...req.body,
-    costPrice: Number(costPrice),
-    regularPrice: Number(regularPrice),
-    salePrice: req.body.salePrice ? Number(req.body.salePrice) : undefined,
-    stock: Number(stock)
+  if (sale && sale >= regular) {
+    return res.status(400).json({
+      success: false,
+      message: "Sale price must be less than regular price.",
+    });
+  }
+
+  //  3. Parse JSON fields safely
+  let tags: string[] = [];
+  let lowdown: string[] = [];
+
+  try {
+    if (req.body.tags) tags = JSON.parse(req.body.tags);
+    if (req.body.lowdown) lowdown = JSON.parse(req.body.lowdown);
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid JSON format for tags or lowdown.",
+    });
+  }
+
+  //  4. Build clean payload (ONLY allowed fields)
+  let productData: any = {
+    name,
+    description,
+    categoryID,
+
+    costPrice: cost,
+    regularPrice: regular,
+    salePrice: sale,
+
+    stock: qty,
+
+    brand: req.body.brand || undefined,
+    tags,
+    lowdown,
+
+    weight: req.body.weight ? Number(req.body.weight) : undefined,
+    freeShipping: req.body.freeShipping === "true",
+
+    isFeatured: req.body.isFeatured === "true",
+    isNew: req.body.isNew !== "false",
+
+    status: req.body.status || "active",
+
+    metaTitle: req.body.metaTitle,
+    metaDescription: req.body.metaDescription,
+
+    // dimensions parse
+    dimensions: {
+      length: req.body.length ? Number(req.body.length) : undefined,
+      width: req.body.width ? Number(req.body.width) : undefined,
+      height: req.body.height ? Number(req.body.height) : undefined,
+    },
   };
 
-  // ৩. ইমেজ ভ্যালিডেশন ও আপলোড
+  //  5. Thumbnail upload (unchanged as you wanted)
   if (files && files.thumbnail && files.thumbnail[0]) {
     const result: any = await uploadToCloudinary(
       files.thumbnail[0].buffer,
@@ -45,10 +109,11 @@ const createProduct = catchAsync(async (req: Request, res: Response) => {
   } else {
     return res.status(400).json({
       success: false,
-      message: "Product thumbnail is required!"
+      message: "Product thumbnail is required!",
     });
   }
 
+  //  6. Multiple images upload
   if (files && files.images && files.images.length > 0) {
     const uploadPromises = files.images.map((file) =>
       uploadToCloudinary(file.buffer, "glowly_products/gallery"),
@@ -58,9 +123,10 @@ const createProduct = catchAsync(async (req: Request, res: Response) => {
     productData.images = uploadResults.map((res) => res.secure_url || res.url);
   }
 
-  // ৪. সব ঠিক থাকলে সার্ভিস কল
+  //  7. Call service
   const result = await ProductServices.createProductIntoDB(productData);
 
+  //  8. Response
   sendResponse(res, {
     statusCode: 201,
     success: true,
@@ -69,7 +135,79 @@ const createProduct = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateProduct = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
+  const updateData: any = { ...req.body };
+
+  //  Number convert
+  if (req.body.costPrice) updateData.costPrice = Number(req.body.costPrice);
+  if (req.body.regularPrice) updateData.regularPrice = Number(req.body.regularPrice);
+  if (req.body.stock) updateData.stock = Number(req.body.stock);
+  if (req.body.weight) updateData.weight = Number(req.body.weight);
+
+  //  salePrice safe handling
+  if (req.body.salePrice) {
+    if (isNaN(Number(req.body.salePrice))) {
+      return res.status(400).json({
+        success: false,
+        message: "Sale price must be a valid number",
+      });
+    }
+    updateData.salePrice = Number(req.body.salePrice);
+  }
+
+  //  JSON parse
+  try {
+    if (req.body.tags) updateData.tags = JSON.parse(req.body.tags);
+    if (req.body.lowdown) updateData.lowdown = JSON.parse(req.body.lowdown);
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid JSON format (tags/lowdown)",
+    });
+  }
+
+  // ✅ Boolean fix
+  if (req.body.freeShipping !== undefined)
+    updateData.freeShipping = req.body.freeShipping === "true";
+
+  if (req.body.isFeatured !== undefined)
+    updateData.isFeatured = req.body.isFeatured === "true";
+
+  if (req.body.isNew !== undefined)
+    updateData.isNew = req.body.isNew === "true";
+
+  //  Thumbnail update (optional)
+  if (files?.thumbnail?.[0]) {
+    const result: any = await uploadToCloudinary(
+      files.thumbnail[0].buffer,
+      "glowly_products/thumbnails"
+    );
+    updateData.thumbnail = result.secure_url || result.url;
+  }
+
+  //  Images update (optional → overwrite)
+  if (files?.images?.length > 0) {
+    const uploadPromises = files.images.map((file) =>
+      uploadToCloudinary(file.buffer, "glowly_products/gallery")
+    );
+
+    const uploadResults: any[] = await Promise.all(uploadPromises);
+    updateData.images = uploadResults.map((res) => res.secure_url || res.url);
+  }
+
+  //  Service call
+  const result = await ProductServices.updateProductIntoDB(id as string, updateData);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Product updated successfully!",
+    data: result,
+  });
+});
 
 const getAllProducts = catchAsync(async (req: Request, res: Response) => {
   const result = await ProductServices.getAllProductsFromDB(req.query);
@@ -82,6 +220,26 @@ const getAllProducts = catchAsync(async (req: Request, res: Response) => {
     data: result.data,
   });
 });
+
+export const getProductsController = async (req: Request, res: Response) => {
+  try {
+    const products = await getNewProductsService({
+      isNew: req.query.isNew as string,
+      limit: req.query.limit ? Number(req.query.limit) : undefined,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Products fetched successfully",
+      data: products,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
 
 const getSingleProduct = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -168,4 +326,5 @@ export const ProductControllers = {
   getSingleProduct,
   getBestsellingProducts,
   getRelatedProducts,
+  updateProduct
 };

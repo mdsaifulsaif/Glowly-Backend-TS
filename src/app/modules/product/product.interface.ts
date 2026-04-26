@@ -105,6 +105,11 @@ export interface IProductUpdate {
   lowdown?: string[];
 }
 
+export interface GetProductsParams {
+  isNew?: string;
+  limit?: number;
+}
+
 
 
 
