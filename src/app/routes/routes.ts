@@ -8,6 +8,8 @@ import { OrderRoutes } from "../modules/order/order.route";
 import { SettingRoutes } from "../modules/settings/setting.route";
 import { CustomerRoutes } from "../modules/customer/customer.route";
 import { DashboardRoutes } from "../modules/dashboard/dashboard.route";
+import path from "node:path";
+import { PaymentRoutes } from "../modules/payment/payment.routes";
 
 const router = Router();
 
@@ -17,15 +19,15 @@ const moduleRoutes = [
     route: UserRoutes,
   },
   {
-    path: '/categories',
+    path: "/categories",
     route: CategoryRoutes,
   },
   {
-    path: '/products',
+    path: "/products",
     route: ProductRoutes,
   },
   {
-    path: '/order',
+    path: "/order",
     route: OrderRoutes,
   },
   {
@@ -47,6 +49,10 @@ const moduleRoutes = [
   {
     path: "/dashboard",
     route: DashboardRoutes,
+  },
+  {
+    path: "/payment",
+    route: PaymentRoutes,
   },
 ];
 
