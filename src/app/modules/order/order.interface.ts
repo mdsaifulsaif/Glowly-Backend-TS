@@ -20,6 +20,8 @@ export interface IOrder {
   user: Types.ObjectId;
   firstName: string;
   lastName: string;
+  createdAt: Date; 
+  updatedAt: Date;
   email: string;
   phone: string;
   shippingAddress: IShippingAddress;
@@ -39,6 +41,7 @@ export interface IDashboardData {
     value: string;
     icon: string;
   }[];
+  
   charts: {
     salesOverview: { name: string; value: number }[];
   };
