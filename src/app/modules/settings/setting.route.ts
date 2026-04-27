@@ -10,8 +10,8 @@ router.get("/", SettingControllers.getSettings);
 
 router.patch(
   "/update",
-  isAuthenticated,
-  isAdmin,
+  // isAuthenticated,
+  // isAdmin,
  upload.fields([
     { name: "logo", maxCount: 1 },
     { name: "favicon", maxCount: 1 },
