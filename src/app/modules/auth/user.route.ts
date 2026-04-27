@@ -7,7 +7,7 @@ const router = express.Router();
 
 // Public Routes
 router.post('/register', UserControllers.registerUser);
-router.post('/login', UserControllers.loginUser);
+router.post('/login',  UserControllers.loginUser);
 router.post('/logout', UserControllers.logoutUser);
 
 // Private Routes

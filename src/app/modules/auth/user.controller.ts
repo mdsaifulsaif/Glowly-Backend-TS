@@ -9,7 +9,6 @@ import { deleteFromCloudinary } from "../../utils/deleteFromCloudinary";
 import { IUser } from "./user.interface";
 import { User } from "./user.model";
 
-
 //   const { email, password, ...rest } = req.body;
 
 //   const userExists = await UserServices.findUserByEmail(email);
@@ -39,12 +38,10 @@ import { User } from "./user.model";
 const registerUser = catchAsync(async (req: Request, res: Response) => {
   const { email, password, ...rest } = req.body;
 
- 
   const userExists = await UserServices.findUserByEmail(email);
   if (userExists) {
     throw new Error("User already exists with this email!");
   }
-
 
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
@@ -55,10 +52,8 @@ const registerUser = catchAsync(async (req: Request, res: Response) => {
     password: hashedPassword,
   };
 
-
   const result = await UserServices.registerUserIntoDB(userData);
 
- 
   sendToken(result as any, 201, res);
 });
 
@@ -75,15 +70,24 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     throw new Error("Invalid email or password");
   }
 
+  if (user.status === "blocked") {
+    return res.status(403).json({
+      success: false,
+      message:
+        "Access Denied! Your account is currently blocked. Please contact support.",
+    });
+  }
 
-  const isPasswordMatched = await (User as any).isPasswordMatched(password, user.password);
+  const isPasswordMatched = await (User as any).isPasswordMatched(
+    password,
+    user.password,
+  );
 
   if (!isPasswordMatched) {
     throw new Error("Invalid email or password");
   }
 
- 
-  sendToken(user as any , 200, res);
+  sendToken(user as any, 200, res);
 });
 
 const logoutUser = catchAsync(async (req: Request, res: Response) => {
