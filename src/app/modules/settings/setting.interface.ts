@@ -25,6 +25,6 @@ export interface ISetting {
   currencySymbol: string;
   symbolPosition: 'before' | 'after';
 
-  // Social Links (আপনার রিকোয়ারমেন্ট অনুযায়ী)
+  // Social Links 
   socialLinks: ISocialLinks;
 }
