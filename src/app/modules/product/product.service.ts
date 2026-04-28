@@ -17,7 +17,7 @@ export const createProductIntoDB = async (payload: IProduct) => {
   //  3. discount percent auto calculate
   if (payload.salePrice) {
     payload.discountPercent = Math.round(
-      ((payload.regularPrice - payload.salePrice) / payload.regularPrice) * 100
+      ((payload.regularPrice - payload.salePrice) / payload.regularPrice) * 100,
     );
   } else {
     payload.discountPercent = 0;
@@ -56,9 +56,8 @@ const updateProductIntoDB = async (id: string, payload: Partial<IProduct>) => {
   // 🔥 discount auto calculate
   if (payload.salePrice) {
     payload.discountPercent = Math.round(
-      ((payload.regularPrice! - payload.salePrice) /
-        payload.regularPrice!) *
-        100
+      ((payload.regularPrice! - payload.salePrice) / payload.regularPrice!) *
+        100,
     );
   }
 
@@ -89,12 +88,11 @@ export const getNewProductsService = async (params: GetProductsParams) => {
   return products;
 };
 
-
 const getAllProductsFromDB = async (query: Record<string, any>) => {
   const {
     searchTerm,
     category,
-    tag, 
+    tag,
     page = 1,
     limit = 8,
     sort,
@@ -108,7 +106,7 @@ const getAllProductsFromDB = async (query: Record<string, any>) => {
     filter.$or = [
       { name: { $regex: searchTerm, $options: "i" } },
       { description: { $regex: searchTerm, $options: "i" } },
-      { tags: { $regex: searchTerm, $options: "i" } }, 
+      { tags: { $regex: searchTerm, $options: "i" } },
     ];
   }
 
@@ -119,7 +117,7 @@ const getAllProductsFromDB = async (query: Record<string, any>) => {
 
   // 3. tag filter
   if (tag) {
-    filter.tags = { $in: [tag] }; 
+    filter.tags = { $in: [tag] };
   }
 
   // 4. sorting
@@ -163,12 +161,13 @@ const getSingleProductFromDB = async (id: string) => {
   return result;
 };
 
+
 const getBestsellingProductsFromDB = async (limit: number) => {
   const result = await Order.aggregate([
-    // 1. cartItems array ke bhenge single document kora
+  
     { $unwind: "$cartItems" },
 
-    // 2. Product ID onujayi group kora ebong total quantity sum kora
+  
     {
       $group: {
         _id: "$cartItems.product",
@@ -176,31 +175,38 @@ const getBestsellingProductsFromDB = async (limit: number) => {
       },
     },
 
-    // 3. Beshi bikri houa product gulo ke upore rakha
+
     { $sort: { totalSold: -1 } },
 
-    // 4. Top products limit kora (e.g., top 10)
-   { $limit: limit },
-
-    // 5. Product collection theke full data niye asha
+  
     {
       $lookup: {
-        from: "products", // Apnar database e product collection er nam (prodhanto plural hoy)
-        localField: "_id", // Group theke pawa product ID
-        foreignField: "_id", // Product model er original ID
-        as: "fullProduct", // Ei name data asbe
+        from: "products",
+        localField: "_id",
+        foreignField: "_id",
+        as: "fullProduct",
       },
     },
 
-    // 6. lookup er result array hoye thake, seta ke object banano
+    
     { $unwind: "$fullProduct" },
 
-    // 7. Data format kora (jodi chan totalSold o thakbe abar product er shob data o thakbe)
+  
+    {
+      $match: {
+        "fullProduct.status": "active",
+      },
+    },
+
+ 
+    { $limit: limit },
+
+
     {
       $project: {
-        _id: 0, // Aggregation er group ID baad deya
-        totalSold: 1, // Koita bikri hoise seta rakhlam
-        product: "$fullProduct", // Full product object ta 'product' field e rakhlam
+        _id: 0,
+        totalSold: 1,
+        product: "$fullProduct",
       },
     },
   ]);
@@ -208,24 +214,26 @@ const getBestsellingProductsFromDB = async (limit: number) => {
   return result;
 };
 
-const getRelatedProductsFromDB = async (categoryId: string, productId: string) => {
+const getRelatedProductsFromDB = async (
+  categoryId: string,
+  productId: string,
+) => {
   const result = await Product.find({
-    categoryID: categoryId,      // Same category hote hobe
-    _id: { $ne: productId }      // $ne mane 'Not Equal' - mane current product bad diye
+    categoryID: categoryId, // Same category hote hobe
+    _id: { $ne: productId }, // $ne mane 'Not Equal' - mane current product bad diye
   })
-  .limit(4)                      // Figma design e 4ti product ache
- .populate("categoryID")
+    .limit(4) // Figma design e 4ti product ache
+    .populate("categoryID");
 
   return result;
 };
 
 const getLowStockProductsFromDB = async () => {
-  // এটি সেইসব প্রোডাক্ট খুঁজবে যাদের stock তাদের নিজস্ব lowStockAlert এর সমান বা ছোট
   const result = await Product.find({
-    $expr: { $lte: ["$stock", "$lowStockAlert"] }
+    $expr: { $lte: ["$stock", "$lowStockAlert"] },
   })
-  .populate("categoryID")
-  .sort({ stock: 1 }); // সবচেয়ে কম স্টক আগে দেখাবে
+    .populate("categoryID")
+    .sort({ stock: 1 });
 
   return result;
 };
@@ -239,5 +247,5 @@ export const ProductServices = {
   getRelatedProductsFromDB,
   updateProductIntoDB,
   getNewProductsService,
-  getLowStockProductsFromDB
+  getLowStockProductsFromDB,
 };
