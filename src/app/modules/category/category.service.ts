@@ -3,36 +3,46 @@ import { Category } from "./category.model";
 import { Product } from "../product/product.model";
 
 const createCategoryIntoDB = async (payload: ICategory) => {
-  const isCategoryExist = await Category.findOne({ name: payload.name });
+  const isExist = await Category.findOne({
+    name: payload.name,
+    isDeleted: false,
+  });
 
-  if (isCategoryExist) {
+  if (isExist) {
     throw new Error("Category already exists!");
   }
 
-  const result = await Category.create(payload);
-  return result;
+  return await Category.create(payload);
 };
 
 const getAllCategoriesFromDB = async (page: number, limit: number) => {
   const skip = (page - 1) * limit;
 
-  const result = await Category.find()
+  const data = await Category.find({ isDeleted: false }) //  filter
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
 
-  const total = await Category.countDocuments();
-  const totalPage = Math.ceil(total / limit);
+  const total = await Category.countDocuments({ isDeleted: false });
 
   return {
-    meta: { page, limit, total, totalPage },
-    data: result,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage: Math.ceil(total / limit),
+    },
+    data,
   };
 };
 
-// category.service.ts
 const deleteCategoryFromDB = async (id: string) => {
-  const result = await Category.findByIdAndDelete(id);
+  const result = await Category.findByIdAndUpdate(
+    id,
+    { isDeleted: true },
+    { new: true },
+  );
+
   return result;
 };
 
@@ -41,14 +51,27 @@ const getProductsByCategoryFromDB = async (
   page: number,
   limit: number,
 ) => {
+  const category = await Category.findOne({
+    _id: categoryId,
+    isDeleted: false,
+  });
+
+  if (!category) {
+    throw new Error("Category not found or deleted!");
+  }
+
   const skip = (page - 1) * limit;
 
-  const data = await Product.find({ categoryID: categoryId })
+  const data = await Product.find({
+    categoryID: categoryId,
+  })
     .skip(skip)
     .limit(limit)
-    .populate("categoryID"); 
+    .populate("categoryID");
 
-  const total = await Product.countDocuments({ categoryID: categoryId });
+  const total = await Product.countDocuments({
+    categoryID: categoryId,
+  });
 
   return {
     meta: {
