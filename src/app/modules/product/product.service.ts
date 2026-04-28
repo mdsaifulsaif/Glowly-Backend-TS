@@ -89,10 +89,12 @@ export const getNewProductsService = async (params: GetProductsParams) => {
   return products;
 };
 
+
 const getAllProductsFromDB = async (query: Record<string, any>) => {
   const {
     searchTerm,
     category,
+    tag, // ট্যাগ ফিল্টার
     page = 1,
     limit = 8,
     sort,
@@ -101,30 +103,42 @@ const getAllProductsFromDB = async (query: Record<string, any>) => {
 
   const filter: any = { ...filterData };
 
+  // ১. সার্চ লজিক (নাম, ডেসক্রিপশন এবং ট্যাগের ভেতর খুঁজবে)
   if (searchTerm) {
     filter.$or = [
       { name: { $regex: searchTerm, $options: "i" } },
       { description: { $regex: searchTerm, $options: "i" } },
+      { tags: { $regex: searchTerm, $options: "i" } }, // এই লাইনটি যোগ করা হয়েছে
     ];
   }
 
+  // ২. ক্যাটাগরি ফিল্টার
   if (category && category !== "All Product") {
     filter.categoryID = category;
   }
 
+  // ৩. স্পেসিফিক ট্যাগ ফিল্টার (ইউজার যখন নির্দিষ্ট ট্যাগে ক্লিক করবে)
+  if (tag) {
+    filter.tags = { $in: [tag] }; 
+  }
+
+  // ৪. সর্টিং
   let sortStr = "-createdAt";
   if (sort) {
     sortStr = sort as string;
   }
 
+  // ৫. প্যাগিনেশন ক্যালকুলেশন
   const skip = (Number(page) - 1) * Number(limit);
 
+  // ডাটা ফেচ করা
   const result = await Product.find(filter)
     .populate("categoryID")
     .sort(sortStr)
     .skip(skip)
     .limit(Number(limit));
 
+  // মেটা ডাটা ক্যালকুলেশন
   const total = await Product.countDocuments(filter);
   const totalPage = Math.ceil(total / Number(limit));
 

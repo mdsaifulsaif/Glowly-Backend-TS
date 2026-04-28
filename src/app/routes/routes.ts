@@ -10,6 +10,7 @@ import { CustomerRoutes } from "../modules/customer/customer.route";
 import { DashboardRoutes } from "../modules/dashboard/dashboard.route";
 import path from "node:path";
 import { PaymentRoutes } from "../modules/payment/payment.routes";
+import { ContactRoutes } from "../modules/email/email.route";
 
 const router = Router();
 
@@ -53,6 +54,10 @@ const moduleRoutes = [
   {
     path: "/payment",
     route: PaymentRoutes,
+  },
+  {
+    path: '/contact', 
+    route: ContactRoutes,
   },
 ];
 // 
