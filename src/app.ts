@@ -17,6 +17,9 @@ app.use(
     origin: [
       "https://cartity-admin-dashboard.vercel.app",
       "https://cartify-frontend-fawn.vercel.app",
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:3002",
     ],
     credentials: true,
   }),
