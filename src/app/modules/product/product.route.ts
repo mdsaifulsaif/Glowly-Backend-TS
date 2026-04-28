@@ -46,6 +46,7 @@ router.delete(
 router.get("/bestselling", ProductControllers.getBestsellingProducts);
 
 router.get('/related-products', ProductControllers.getRelatedProducts);
+router.get('/low-stock', ProductControllers.getLowStockProducts);
 
 router.get("/:id", ProductControllers.getSingleProduct);
 

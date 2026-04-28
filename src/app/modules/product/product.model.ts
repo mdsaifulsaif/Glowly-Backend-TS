@@ -27,7 +27,7 @@ const productSchema = new Schema<IProduct>(
 
     //  SKU + Alert
     sku: { type: String, unique: true, sparse: true },
-    lowStockAlert: { type: Number, default: 5 },
+    lowStockAlert: { type: Number, default: 10 },
 
     //  Media (OLD KEEP)
     thumbnail: { type: String, required: true },

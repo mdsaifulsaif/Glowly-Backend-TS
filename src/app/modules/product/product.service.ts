@@ -94,7 +94,7 @@ const getAllProductsFromDB = async (query: Record<string, any>) => {
   const {
     searchTerm,
     category,
-    tag, // ট্যাগ ফিল্টার
+    tag, 
     page = 1,
     limit = 8,
     sort,
@@ -103,42 +103,42 @@ const getAllProductsFromDB = async (query: Record<string, any>) => {
 
   const filter: any = { ...filterData };
 
-  // ১. সার্চ লজিক (নাম, ডেসক্রিপশন এবং ট্যাগের ভেতর খুঁজবে)
+  // 1. serch logic
   if (searchTerm) {
     filter.$or = [
       { name: { $regex: searchTerm, $options: "i" } },
       { description: { $regex: searchTerm, $options: "i" } },
-      { tags: { $regex: searchTerm, $options: "i" } }, // এই লাইনটি যোগ করা হয়েছে
+      { tags: { $regex: searchTerm, $options: "i" } }, 
     ];
   }
 
-  // ২. ক্যাটাগরি ফিল্টার
+  // 2. category filter
   if (category && category !== "All Product") {
     filter.categoryID = category;
   }
 
-  // ৩. স্পেসিফিক ট্যাগ ফিল্টার (ইউজার যখন নির্দিষ্ট ট্যাগে ক্লিক করবে)
+  // 3. tag filter
   if (tag) {
     filter.tags = { $in: [tag] }; 
   }
 
-  // ৪. সর্টিং
+  // 4. sorting
   let sortStr = "-createdAt";
   if (sort) {
     sortStr = sort as string;
   }
 
-  // ৫. প্যাগিনেশন ক্যালকুলেশন
+  // 5. paganation
   const skip = (Number(page) - 1) * Number(limit);
 
-  // ডাটা ফেচ করা
+  // data fetch
   const result = await Product.find(filter)
     .populate("categoryID")
     .sort(sortStr)
     .skip(skip)
     .limit(Number(limit));
 
-  // মেটা ডাটা ক্যালকুলেশন
+  // meta data calcualation
   const total = await Product.countDocuments(filter);
   const totalPage = Math.ceil(total / Number(limit));
 
@@ -219,6 +219,17 @@ const getRelatedProductsFromDB = async (categoryId: string, productId: string) =
   return result;
 };
 
+const getLowStockProductsFromDB = async () => {
+  // এটি সেইসব প্রোডাক্ট খুঁজবে যাদের stock তাদের নিজস্ব lowStockAlert এর সমান বা ছোট
+  const result = await Product.find({
+    $expr: { $lte: ["$stock", "$lowStockAlert"] }
+  })
+  .populate("categoryID")
+  .sort({ stock: 1 }); // সবচেয়ে কম স্টক আগে দেখাবে
+
+  return result;
+};
+
 export const ProductServices = {
   createProductIntoDB,
   getAllProductsFromDB,
@@ -227,5 +238,6 @@ export const ProductServices = {
   getBestsellingProductsFromDB,
   getRelatedProductsFromDB,
   updateProductIntoDB,
-  getNewProductsService
+  getNewProductsService,
+  getLowStockProductsFromDB
 };
